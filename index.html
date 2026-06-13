@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bank of America"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<title>Bank of America</title>
+<style>
+/* ── RESET ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;}
+html{
+  /* Fill every pixel on iPhone — including behind status bar & home indicator */
+  height:-webkit-fill-available;
+  height:100dvh;
+  overflow:hidden;
+  background:#f0f0f0;
+}
+body{
+  width:100vw;
+  height:-webkit-fill-available;
+  height:100dvh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  color:#1a1a1a;
+  background:#f0f0f0;
+  /* Prevent rubber-band bounce on body itself */
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+}
+
+/* ── FIXED OVERLAYS ── */
+#overlay,#settings{
+  position:fixed;
+  /* Push into safe areas */
+  top:env(safe-area-inset-top,0);
+  left:env(safe-area-inset-left,0);
+  right:env(safe-area-inset-right,0);
+  bottom:env(safe-area-inset-bottom,0);
+  z-index:9000;
+  display:none;
+  flex-direction:column;
+}
+#overlay{
+  background:rgba(255,255,255,0.97);
+  align-items:center;justify-content:center;gap:16px;
+  z-index:9999;
+}
+#overlay.show{display:flex;}
+.spin-ring{width:50px;height:50px;border:4px solid #e0e0e0;border-top-color:#E31837;border-radius:50%;animation:spin .9s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#ov-spin{display:flex;flex-direction:column;align-items:center;gap:12px;}
+#ov-spin.hide{display:none;}
+#ov-err{display:none;flex-direction:column;align-items:center;gap:14px;padding:0 36px;text-align:center;}
+#ov-err.show{display:flex;}
+.err-icon{width:56px;height:56px;border-radius:50%;background:#FEE2E2;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;}
+.err-title{font-weight:700;font-size:17px;color:#E31837;}
+.err-body{font-size:14px;color:#555;line-height:1.6;white-space:pre-line;}
+.err-btn{background:#E31837;color:#fff;border:none;border-radius:6px;padding:14px 0;font-size:15px;font-weight:700;cursor:pointer;width:100%;font-family:inherit;}
+
+/* ── SETTINGS ── */
+#settings{background:#fff;z-index:9000;}
+#settings.show{display:flex;}
+.s-hdr{
+  background:#012169;color:#fff;
+  padding-top:max(52px,env(safe-area-inset-top,52px));
+  padding-bottom:14px;padding-left:16px;padding-right:16px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.s-back{background:none;border:none;color:#fff;font-size:30px;cursor:pointer;padding:0;line-height:1;font-family:inherit;display:flex;align-items:center;}
+.s-title{font-weight:700;font-size:19px;}
+.s-body{padding:20px 16px 60px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.s-note{font-size:13px;color:#888;margin-bottom:22px;line-height:1.5;}
+.s-grp{margin-bottom:24px;}
+.s-grp-lbl{font-size:11px;font-weight:700;color:#888;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid #ddd;padding-bottom:7px;margin-bottom:13px;}
+.s-fld{margin-bottom:14px;}
+.s-fld label{display:block;font-size:12px;color:#888;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;}
+.iw{display:flex;border:1.5px solid #ddd;border-radius:8px;overflow:hidden;background:#fff;}
+.pre{padding:0 10px;background:#f5f5f5;border-right:1.5px solid #ddd;font-size:14px;color:#555;display:flex;align-items:center;flex-shrink:0;}
+.iw input{flex:1;border:none;padding:0 12px;height:44px;font-size:16px;outline:none;font-family:inherit;background:#fff;color:#1a1a1a;}
+.save-btn{width:100%;background:#E31837;color:#fff;border:none;border-radius:8px;padding:15px 0;font-size:17px;font-weight:700;cursor:pointer;margin-top:10px;font-family:inherit;}
+
+/* ── APP SHELL — fills body exactly ── */
+#app{
+  display:flex;
+  flex-direction:column;
+  width:100%;
+  flex:1;
+  min-height:0;
+  overflow:hidden;
+  /* Respect iPhone safe areas */
+  padding-top:env(safe-area-inset-top,0);
+}
+
+/* ── TOP NAV ── */
+#tnav{
+  background:#fff;padding:4px 18px 0;
+  display:flex;justify-content:space-between;align-items:flex-end;
+  flex-shrink:0;
+}
+.nb{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding-bottom:8px;font-family:inherit;}
+.nb span{font-size:11px;color:#1a1a1a;}
+.nbr{display:flex;gap:22px;}
+
+/* ── TABS ── */
+#tabs{background:#fff;display:flex;flex-shrink:0;border-bottom:1px solid #e0e0e0;}
+.tab{flex:1;padding:10px 0;background:none;border:none;border-bottom:2.5px solid transparent;margin-bottom:-1px;cursor:pointer;font-size:16px;font-family:inherit;color:#666;}
+.tab.active{color:#E31837;border-bottom-color:#E31837;font-weight:600;}
+
+/* ── ERICA ── */
+#ebar{background:#fff;padding:8px 12px 10px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.esearch{flex:1;background:#efefef;border-radius:22px;display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;}
+.esearch span{color:#888;font-size:14px;}
+.eavatar{position:relative;cursor:pointer;flex-shrink:0;}
+.ebadge{position:absolute;top:-5px;right:-6px;background:#E31837;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
+
+/* ── SCROLL ── */
+#scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f0f0f0;}
+
+/* ── BOTTOM NAV ── */
+#bnav{
+  background:#fff;border-top:1px solid #ddd;
+  display:flex;flex-shrink:0;
+  padding-top:8px;
+  /* home indicator safe area */
+  padding-bottom:env(safe-area-inset-bottom,12px);
+}
+.bb{flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;font-family:inherit;position:relative;padding:0 0 4px;}
+.blbl{font-size:10px;color:#555;}
+.blbl.on{color:#0066CC;font-weight:700;}
+.bbadge{position:absolute;top:0;right:calc(50% - 22px);background:#E31837;color:#fff;border-radius:50%;width:17px;height:17px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff;}
+
+/* ── CONTENT ── */
+.card{background:#fff;margin-top:8px;}
+.crow{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-bottom:1px solid #ebebeb;}
+.crow:last-child{border-bottom:none;}
+.clbl{font-weight:700;font-size:16px;}
+.csub{font-size:13px;color:#555;margin-top:2px;}
+
+.secbar{background:#fff;margin-top:8px;}
+.secstripe{height:4px;background:linear-gradient(to right,#E31837 65%,#012169 100%);}
+.sectog{width:100%;padding:13px 16px;background:none;border:none;display:flex;justify-content:space-between;align-items:center;cursor:pointer;font-family:inherit;}
+.sectog span{font-weight:700;font-size:16px;color:#1a1a1a;}
+
+.abody{background:#fff;}
+.bofhdr{padding:10px 16px 8px;}
+.bofrow{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+.bofname{font-weight:700;font-size:14px;}
+.fdicrow{display:flex;align-items:center;gap:6px;}
+.fdicbadge{background:#003087;color:#fff;font-weight:900;font-size:9px;padding:1px 4px;border-radius:2px;}
+.fdictext{font-size:11px;color:#555;}
+.arow{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border-top:1px solid #ebebeb;}
+.albl{font-size:15px;}
+.ari{display:flex;align-items:center;gap:10px;}
+.aamt{font-weight:700;font-size:16px;}
+.chv{flex-shrink:0;}
+
+.explcard{background:#fff;margin-top:8px;padding:16px;}
+.explbtns{display:flex;margin-top:14px;border-top:1px solid #ebebeb;}
+.explbtn{flex:1;padding:13px 0;background:none;border:none;color:#0066CC;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.04em;font-family:inherit;}
+.explbtn:first-child{border-right:1px solid #ebebeb;}
+
+.offcard{background:#fff;margin-top:8px;padding:16px;}
+.offinner{display:flex;gap:12px;align-items:center;}
+.offtitle{color:#E31837;font-weight:700;font-size:15px;}
+.offsub{font-size:12px;color:#555;margin-top:2px;}
+.offlink{background:none;border:none;color:#0066CC;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;flex-shrink:0;}
+
+.dealscard{background:#fff;margin-top:8px;padding:14px 16px;}
+.dealscroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;}
+.dealitem{min-width:100px;border-radius:8px;padding:12px 10px;cursor:pointer;text-align:center;flex-shrink:0;border:none;font-family:inherit;}
+.dotsrow{display:flex;justify-content:center;gap:6px;margin-top:10px;}
+.dot{width:7px;height:7px;border-radius:50%;background:#ddd;}
+.dot.on{background:#1a1a1a;}
+
+.vdcard{background:#fff;margin-top:8px;}
+.vdcard button{width:100%;padding:16px 0;background:none;border:none;color:#0066CC;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.06em;font-family:inherit;}
+
+.aicard{background:#fff;margin-top:8px;padding:16px;}
+.aicard h2{font-weight:700;font-size:16px;margin-bottom:12px;}
+.ilink{display:block;width:100%;text-align:left;padding:13px 0;color:#0066CC;font-weight:700;font-size:15px;background:none;border:none;cursor:pointer;border-bottom:1px solid #ebebeb;font-family:inherit;}
+.legaltitle{font-weight:700;font-size:15px;margin:12px 0 8px;}
+.legalitem{font-size:13px;color:#555;margin-bottom:2px;}
+
+.footer{background:#f8f8f8;margin-top:8px;padding:18px 16px 80px;}
+.flinks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;margin-bottom:14px;}
+.flink{background:none;border:none;color:#0066CC;font-size:12px;font-weight:700;cursor:pointer;padding:0;font-family:inherit;}
+.fcopy{text-align:center;font-size:11px;color:#888;}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="overlay">
+  <div id="ov-spin">
+    <div class="spin-ring"></div>
+    <span style="font-size:15px;color:#555">Loading…</span>
+  </div>
+  <div id="ov-err">
+    <div class="err-icon">⚠️</div>
+    <div class="err-title">Something went wrong</div>
+    <div class="err-body" id="err-txt"></div>
+    <button class="err-btn" onclick="dismiss()">Dismiss</button>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="settings">
+  <div class="s-hdr">
+    <button class="s-back" onclick="closeS()">‹</button>
+    <span class="s-title">Settings</span>
+  </div>
+  <div class="s-body">
+    <p class="s-note">Edit any value below, then tap Save.</p>
+    <div class="s-grp">
+      <div class="s-grp-lbl">Status Bar</div>
+      <div class="s-fld"><label>Notification Badge</label><div class="iw"><input id="f-badge" type="number" inputmode="numeric"></div></div>
+    </div>
+    <div class="s-grp">
+      <div class="s-grp-lbl">Profile</div>
+      <div class="s-fld"><label>Name</label><div class="iw"><input id="f-name" type="text"></div></div>
+      <div class="s-fld"><label>Rewards Label</label><div class="iw"><input id="f-rewards" type="text"></div></div>
+    </div>
+    <div class="s-grp">
+      <div class="s-grp-lbl">Checking Account</div>
+      <div class="s-fld"><label>Last 4 Digits</label><div class="iw"><input id="f-chk4" type="text" maxlength="4" inputmode="numeric"></div></div>
+      <div class="s-fld"><label>Balance</label><div class="iw"><div class="pre">$</div><input id="f-chkbal" type="number" step="0.01" inputmode="decimal"></div></div>
+    </div>
+    <div class="s-grp">
+      <div class="s-grp-lbl">Savings Account</div>
+      <div class="s-fld"><label>Last 4 Digits</label><div class="iw"><input id="f-sav4" type="text" maxlength="4" inputmode="numeric"></div></div>
+      <div class="s-fld"><label>Balance</label><div class="iw"><div class="pre">$</div><input id="f-savbal" type="number" step="0.01" inputmode="decimal"></div></div>
+    </div>
+    <div class="s-grp">
+      <div class="s-grp-lbl">Credit Card</div>
+      <div class="s-fld"><label>Card Line 1</label><div class="iw"><input id="f-cc1" type="text"></div></div>
+      <div class="s-fld"><label>Card Line 2</label><div class="iw"><input id="f-cc2" type="text"></div></div>
+      <div class="s-fld"><label>Last 4 Digits</label><div class="iw"><input id="f-cc4" type="text" maxlength="4" inputmode="numeric"></div></div>
+      <div class="s-fld"><label>Balance</label><div class="iw"><div class="pre">$</div><input id="f-ccbal" type="number" step="0.01" inputmode="decimal"></div></div>
+    </div>
+    <div class="s-grp">
+      <div class="s-grp-lbl">Special Offer</div>
+      <div class="s-fld"><label>Bonus Amount</label><div class="iw"><div class="pre">$</div><input id="f-bonus" type="number" step="1" inputmode="numeric"></div></div>
+      <div class="s-fld"><label>Cashback Rate</label><div class="iw"><div class="pre">%</div><input id="f-cbrate" type="number" step="0.1" inputmode="decimal"></div></div>
+    </div>
+    <button class="save-btn" onclick="saveS()">Save Changes</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOP NAV -->
+  <div id="tnav">
+    <button class="nb" onclick="go()">
+      <svg width="22" height="16" viewBox="0 0 22 16">
+        <rect y="0"    width="22" height="2.5" rx="1.2" fill="#1a1a1a"/>
+        <rect y="6.75" width="22" height="2.5" rx="1.2" fill="#1a1a1a"/>
+        <rect y="13.5" width="22" height="2.5" rx="1.2" fill="#1a1a1a"/>
+      </svg>
+      <span>Menu</span>
+    </button>
+    <div class="nbr">
+      <button class="nb" onclick="go()">
+        <svg width="22" height="17" viewBox="0 0 22 17" fill="none">
+          <rect x="1" y="1" width="20" height="15" rx="2" stroke="#1a1a1a" stroke-width="1.7"/>
+          <path d="M1 5l10 5.5L21 5" stroke="#1a1a1a" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span>Inbox</span>
+      </button>
+      <button class="nb" onclick="go()">
+        <svg width="22" height="21" viewBox="0 0 22 21" fill="none">
+          <path d="M1 1h3.5l2 10h10l2-7H6.5" stroke="#1a1a1a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="9.5" cy="18.5" r="1.8" fill="#1a1a1a"/>
+          <circle cx="15.5" cy="18.5" r="1.8" fill="#1a1a1a"/>
+        </svg>
+        <span>Products</span>
+      </button>
+      <button class="nb" onclick="go()">
+        <svg width="22" height="20" viewBox="0 0 22 20" fill="none">
+          <rect x="1" y="1" width="12" height="18" rx="2" stroke="#1a1a1a" stroke-width="1.7"/>
+          <path d="M15 6l6 4.5-6 4.5M21 10.5H9" stroke="#1a1a1a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Log Out</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div id="tabs">
+    <button class="tab active" id="tab-acc" onclick="setTab('acc')">Accounts</button>
+    <button class="tab" id="tab-dash" onclick="setTab('dash')">Dashboard</button>
+  </div>
+
+  <!-- ERICA -->
+  <div id="ebar">
+    <div class="esearch" onclick="go()">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+        <circle cx="6.5" cy="6.5" r="5" stroke="#888" stroke-width="1.7"/>
+        <path d="M10.5 10.5l3.5 3.5" stroke="#888" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+      <span>Hi, I'm Erica. How can I help?</span>
+    </div>
+    <div class="eavatar" onclick="go()">
+      <svg width="37" height="37" viewBox="0 0 37 37">
+        <circle cx="18.5" cy="18.5" r="18.5" fill="#E31837"/>
+        <rect x="9" y="12"   width="19" height="3" rx="1.5" fill="white"/>
+        <rect x="9" y="17.5" width="19" height="3" rx="1.5" fill="white"/>
+        <rect x="9" y="23"   width="19" height="3" rx="1.5" fill="white"/>
+      </svg>
+      <div class="ebadge" id="d-badge">10</div>
+    </div>
+  </div>
+
+  <!-- SCROLL -->
+  <div id="scroll">
+
+    <!-- Hello card -->
+    <div class="card">
+      <div class="crow" onclick="go()">
+        <div><div class="clbl" id="d-hello">Hello, Shamsuddin</div><div class="csub" id="d-rewards">BofA Rewards member</div></div>
+        <svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="crow" onclick="go()">
+        <div><div class="clbl">Bank of America Life Plan®</div><div class="csub">Set, track, achieve. Your goals are in reach.</div></div>
+        <svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="crow" onclick="go()" style="border-bottom:none">
+        <div class="clbl">BofA Rewards™</div>
+        <svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- BANKING -->
+    <div class="secbar">
+      <div class="secstripe"></div>
+      <button class="sectog" onclick="tog('bank')">
+        <span>Banking</span>
+        <svg id="arr-bank" width="22" height="13" viewBox="0 0 22 13" fill="none"><path d="M2 11l9-9 9 9" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="abody" id="bod-bank">
+      <div class="bofhdr">
+        <div class="bofrow"><span class="bofname">Bank of America</span></div>
+        <div class="fdicrow">
+          <span class="fdicbadge">FDIC</span>
+          <span class="fdictext">FDIC-Insured · Backed by the full faith and credit of the U.S. Government</span>
+        </div>
+      </div>
+      <div class="arow" onclick="go()">
+        <span class="albl" id="d-chklbl">Adv Plus Banking - 7401</span>
+        <div class="ari"><span class="aamt" id="d-chkbal">$168.75</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div style="border-top:1px solid #ebebeb;margin:0 16px"></div>
+      <div class="arow" onclick="go()">
+        <span class="albl" id="d-savlbl">Savings 9289</span>
+        <div class="ari"><span class="aamt" id="d-savbal">$315.53</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <!-- CREDIT CARDS -->
+    <div class="secbar">
+      <div class="secstripe"></div>
+      <button class="sectog" onclick="tog('cc')">
+        <span>Credit cards</span>
+        <svg id="arr-cc" width="22" height="13" viewBox="0 0 22 13" fill="none"><path d="M2 11l9-9 9 9" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="abody" id="bod-cc">
+      <div class="bofhdr">
+        <div class="bofrow"><span class="bofname">Bank of America</span></div>
+      </div>
+      <div class="arow" onclick="go()">
+        <div style="line-height:1.55">
+          <div style="font-weight:700;font-size:14px" id="d-cc1">BANKAMERICARD</div>
+          <div style="font-size:14px" id="d-cc2">Platinum Plus</div>
+          <div style="font-size:14px" id="d-cc3">Mastercard - 9171</div>
+        </div>
+        <div class="ari"><span class="aamt" id="d-ccbal">$4,860.39</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Explore -->
+    <div class="explcard">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="width:50px;height:50px;background:#e8f0fe;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="2" y="6" width="24" height="16" rx="2.5" stroke="#0066CC" stroke-width="1.7"/><path d="M7 12h14M7 16h8" stroke="#0066CC" stroke-width="1.7" stroke-linecap="round"/><path d="M19 18l5-2.5-5-2.5v5z" fill="#0066CC"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:3px">There's more to explore</div>
+          <div style="font-size:13px;color:#555;line-height:1.45">Explore Bank of America credit cards, loans, checking and savings accounts, plus Merrill investment solutions.</div>
+        </div>
+      </div>
+      <div class="explbtns">
+        <button class="explbtn" onclick="go()">OFFERS</button>
+        <button class="explbtn" onclick="go()">PRODUCTS</button>
+      </div>
+    </div>
+
+    <!-- Offer -->
+    <div class="offcard">
+      <div style="font-size:12px;color:#555;margin-bottom:8px">Your special business offer</div>
+      <div class="offinner">
+        <div style="width:68px;height:44px;background:#1a1a2e;border-radius:5px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">
+          <svg width="62" height="40" viewBox="0 0 62 40"><rect width="62" height="40" fill="#1a1a2e"/><text x="6" y="24" font-size="11" font-weight="bold" fill="#C4A832" font-family="sans-serif">BofA</text><circle cx="44" cy="22" r="9" fill="#EB001B" opacity="0.85"/><circle cx="52" cy="22" r="9" fill="#F79E1B" opacity="0.85"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="offtitle" id="d-offertitle">$500 cash rewards bonus offer</div>
+          <div class="offsub" id="d-offersub">Unlimited 1.5% cash back</div>
+        </div>
+        <button class="offlink" onclick="go()">Learn more</button>
+      </div>
+    </div>
+
+    <!-- Deals -->
+    <div class="dealscard">
+      <div style="font-size:12px;font-weight:700;color:#888;letter-spacing:.08em;margin-bottom:12px">DEALS</div>
+      <div class="dealscroll">
+        <button class="dealitem" style="background:#012169" onclick="go()"><div style="font-size:22px;margin-bottom:4px">⚽</div><div style="font-size:12px;color:#fff">FIFA World...</div><div style="font-size:12px;font-weight:700;color:#fff">Explore Now</div></button>
+        <button class="dealitem" style="background:#fff;border:1px solid #ddd" onclick="go()"><div style="font-size:22px;margin-bottom:4px">⭐</div><div style="font-size:12px;color:#1a1a1a">Macy's</div><div style="font-size:12px;font-weight:700;color:#1a1a1a">Earn Now</div></button>
+        <button class="dealitem" style="background:#CC0000" onclick="go()"><div style="font-size:22px;margin-bottom:4px">💻</div><div style="font-size:12px;color:#fff">Lenovo</div><div style="font-size:12px;font-weight:700;color:#fff">Save Now</div></button>
+      </div>
+      <div class="dotsrow"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    </div>
+
+    <div class="vdcard"><button onclick="openS()">VIEW ALL DEALS</button></div>
+
+    <div class="aicard">
+      <h2>Account information</h2>
+      <hr style="border:none;border-top:1px solid #ebebeb"/>
+      <button class="ilink" onclick="go()">Account Balance Footnotes</button>
+      <div class="legaltitle">Legal info and disclosures</div>
+      <div style="font-size:13px;color:#555;margin-bottom:6px">Investment, insurance and annuity products:</div>
+      <div class="legalitem">• Are Not FDIC Insured</div>
+      <div class="legalitem">• Are Not Bank Guaranteed</div>
+      <div class="legalitem">• May Lose Value</div>
+      <div class="legalitem">• Are Not Deposits</div>
+      <div class="legalitem">• Are Not Insured by Any Federal Government Agency</div>
+      <div class="legalitem">• Are Not a Condition to Any Banking Service or Activity</div>
+    </div>
+
+    <div class="footer">
+      <div class="flinks">
+        <button class="flink" onclick="go()">Browse with Specialist</button>
+        <button class="flink" onclick="go()">Accessible Banking</button>
+        <button class="flink" onclick="go()">Security</button>
+        <button class="flink" onclick="go()">Privacy</button>
+        <button class="flink" onclick="go()">Children's Privacy</button>
+        <button class="flink" onclick="go()">Your Privacy Choices</button>
+        <button class="flink" onclick="go()">AdChoices</button>
+        <button class="flink" onclick="go()">Legal Info &amp; Disclosures</button>
+        <button class="flink" onclick="go()">Equal Housing Lender</button>
+      </div>
+      <div class="fcopy">Bank of America, N.A. Member FDIC. © 2026 Bank of America Corporation.</div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <!-- BOTTOM NAV -->
+  <div id="bnav">
+    <button class="bb" onclick="go()">
+      <svg width="27" height="27" viewBox="0 0 27 27" fill="none"><circle cx="13.5" cy="13.5" r="12" stroke="#0066CC" stroke-width="1.9"/><path d="M13.5 7v13" stroke="#0066CC" stroke-width="1.6" stroke-linecap="round"/><path d="M16.5 10a3 3 0 00-6 0c0 1.65 1.34 2.5 3 2.5s3 .85 3 2.5a3 3 0 01-6 0" stroke="#0066CC" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <span class="blbl on">Accounts</span>
+    </button>
+    <button class="bb" onclick="go()">
+      <div class="bbadge">1</div>
+      <svg width="27" height="27" viewBox="0 0 27 27" fill="none"><circle cx="13.5" cy="13.5" r="12" stroke="#1a1a1a" stroke-width="1.9"/><path d="M13.5 8.5v9M16 11a2.5 2.5 0 00-5 0c0 1.38 1.12 2 2.5 2s2.5.62 2.5 2a2.5 2.5 0 01-5 0" stroke="#1a1a1a" stroke-width="1.5" stroke-linecap="round"/><path d="M20 7.5A9 9 0 0123 13.5" stroke="#1a1a1a" stroke-width="1.4" stroke-linecap="round"/><polyline points="18.5,6 20,7.5 21.5,6" stroke="#1a1a1a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 19.5A9 9 0 014 13.5" stroke="#1a1a1a" stroke-width="1.4" stroke-linecap="round"/><polyline points="8.5,21 7,19.5 5.5,21" stroke="#1a1a1a" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="blbl">Pay &amp; Transfer</span>
+    </button>
+    <button class="bb" onclick="go()">
+      <svg width="27" height="27" viewBox="0 0 27 27" fill="none"><rect x="2" y="21" width="23" height="3.5" rx="1.5" stroke="#1a1a1a" stroke-width="1.7"/><path d="M13.5 4v15" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round"/><path d="M9 15l4.5 5 4.5-5" stroke="#1a1a1a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="blbl">Deposit Checks</span>
+    </button>
+    <button class="bb" onclick="go()">
+      <svg width="27" height="27" viewBox="0 0 27 27" fill="none"><circle cx="13.5" cy="13.5" r="12" stroke="#1a1a1a" stroke-width="1.9"/><path d="M13.5 13.5L13.5 2.5A11 11 0 0124.5 13.5Z" fill="#1a1a1a"/></svg>
+      <span class="blbl">Invest</span>
+    </button>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// Block all navigation/back
+history.pushState(null,'',location.href);
+window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});
+
+var cfg={time:"8:15",battery:100,badge:"10",name:"Shamsuddin",rewards:"BofA Rewards member",chk4:"7401",chkbal:"168.75",sav4:"9289",savbal:"315.53",cc1:"BANKAMERICARD",cc2:"Platinum Plus",cc4:"9171",ccbal:"4860.39",bonus:"500",cbrate:"1.5"};
+
+function fmt(v){var n=parseFloat(String(v).replace(/,/g,''));if(isNaN(n))return v;return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function apply(){
+  document.getElementById('d-badge').textContent=cfg.badge;
+  document.getElementById('d-hello').textContent='Hello, '+cfg.name;
+  document.getElementById('d-rewards').textContent=cfg.rewards;
+  document.getElementById('d-chklbl').textContent='Adv Plus Banking - '+cfg.chk4;
+  document.getElementById('d-chkbal').textContent='$'+fmt(cfg.chkbal);
+  document.getElementById('d-savlbl').textContent='Savings '+cfg.sav4;
+  document.getElementById('d-savbal').textContent='$'+fmt(cfg.savbal);
+  document.getElementById('d-cc1').textContent=cfg.cc1;
+  document.getElementById('d-cc2').textContent=cfg.cc2;
+  document.getElementById('d-cc3').textContent='Mastercard - '+cfg.cc4;
+  document.getElementById('d-ccbal').textContent='$'+fmt(cfg.ccbal);
+  document.getElementById('d-offertitle').textContent='$'+fmt(cfg.bonus)+' cash rewards bonus offer';
+  document.getElementById('d-offersub').textContent='Unlimited '+cfg.cbrate+'% cash back';
+}
+apply();
+
+var ERRS=["Connection timed out. Please check your\nnetwork and try again.","Service temporarily unavailable (503).\nPlease try again later.","We're having trouble completing your request.\nError code: BAC-4041.","Session interrupted. Please refresh\nand try again.","Unable to reach Bank of America servers.\nPlease try again."];
+var lt=null;
+function go(){
+  document.getElementById('ov-spin').className='';
+  document.getElementById('ov-err').className='';
+  document.getElementById('overlay').className='show';
+  clearTimeout(lt);
+  lt=setTimeout(function(){
+    document.getElementById('ov-spin').className='hide';
+    document.getElementById('err-txt').textContent=ERRS[Math.floor(Math.random()*ERRS.length)];
+    document.getElementById('ov-err').className='show';
+  },1800);
+}
+function dismiss(){document.getElementById('overlay').className='';clearTimeout(lt);}
+
+var bO=true,cO=true;
+function tog(s){
+  if(s==='bank'){bO=!bO;document.getElementById('bod-bank').style.display=bO?'':'none';document.getElementById('arr-bank').innerHTML=bO?'<path d="M2 11l9-9 9 9" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>':'<path d="M2 2l9 9 9-9" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';}
+  else{cO=!cO;document.getElementById('bod-cc').style.display=cO?'':'none';document.getElementById('arr-cc').innerHTML=cO?'<path d="M2 11l9-9 9 9" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>':'<path d="M2 2l9 9 9-9" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';}
+}
+
+function setTab(t){document.getElementById('tab-acc').className='tab'+(t==='acc'?' active':'');document.getElementById('tab-dash').className='tab'+(t==='dash'?' active':'');go();}
+
+function openS(){
+  document.getElementById('f-badge').value=cfg.badge;
+  document.getElementById('f-name').value=cfg.name;
+  document.getElementById('f-rewards').value=cfg.rewards;
+  document.getElementById('f-chk4').value=cfg.chk4;
+  document.getElementById('f-chkbal').value=cfg.chkbal;
+  document.getElementById('f-sav4').value=cfg.sav4;
+  document.getElementById('f-savbal').value=cfg.savbal;
+  document.getElementById('f-cc1').value=cfg.cc1;
+  document.getElementById('f-cc2').value=cfg.cc2;
+  document.getElementById('f-cc4').value=cfg.cc4;
+  document.getElementById('f-ccbal').value=cfg.ccbal;
+  document.getElementById('f-bonus').value=cfg.bonus;
+  document.getElementById('f-cbrate').value=cfg.cbrate;
+  document.getElementById('settings').className='show';
+}
+function closeS(){document.getElementById('settings').className='';}
+function saveS(){
+  function g(id){return document.getElementById(id).value;}
+  cfg.badge=g('f-badge')||cfg.badge;cfg.name=g('f-name')||cfg.name;cfg.rewards=g('f-rewards')||cfg.rewards;cfg.chk4=g('f-chk4')||cfg.chk4;cfg.chkbal=g('f-chkbal')||cfg.chkbal;cfg.sav4=g('f-sav4')||cfg.sav4;cfg.savbal=g('f-savbal')||cfg.savbal;cfg.cc1=g('f-cc1')||cfg.cc1;cfg.cc2=g('f-cc2')||cfg.cc2;cfg.cc4=g('f-cc4')||cfg.cc4;cfg.ccbal=g('f-ccbal')||cfg.ccbal;cfg.bonus=g('f-bonus')||cfg.bonus;cfg.cbrate=g('f-cbrate')||cfg.cbrate;
+  apply();closeS();
+}
+</script>
+</body>
+</html>
