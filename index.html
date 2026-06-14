@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  var password = prompt("Enter password to view page:");
+  if (password !=="4351"){
+    alert("Incorrect password.");
+    window.location.href = "https:google.com"; // Redirects intruders away
+  }
+</script>    
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
