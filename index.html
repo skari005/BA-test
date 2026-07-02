@@ -12,10 +12,16 @@
 /* ── PASSWORD LOCK SCREEN ── */
 #lock{
   position:fixed;inset:0;z-index:99999;
-  background:#012169;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:18px;padding:0 32px;
   text-align:center;
+  /* White strip at top for iOS status bar, navy below */
+  background:linear-gradient(to bottom,
+    #fff 0px,
+    #fff env(safe-area-inset-top, 44px),
+    #012169 env(safe-area-inset-top, 44px),
+    #012169 100%
+  );
 }
 #lock.hide{display:none;}
 .lock-title{color:#fff;font-size:20px;font-weight:700;margin-bottom:4px;}
@@ -389,12 +395,12 @@ body{
       </div>
       <div class="arow" onclick="go()">
         <span class="albl" id="d-chklbl">Adv Plus Banking - 7401</span>
-        <div class="ari"><span class="aamt" id="d-chkbal">$1,041.64</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ari"><span class="aamt" id="d-chkbal">$168.75</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       <div style="border-top:1px solid #ebebeb;margin:0 16px"></div>
       <div class="arow" onclick="go()">
         <span class="albl" id="d-savlbl">Savings 9289</span>
-        <div class="ari"><span class="aamt" id="d-savbal">$9.48</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ari"><span class="aamt" id="d-savbal">$315.53</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       </div>
     </div>
@@ -418,7 +424,7 @@ body{
           <div style="font-size:14px" id="d-cc2">Platinum Plus</div>
           <div style="font-size:14px" id="d-cc3">Mastercard - 9171</div>
         </div>
-        <div class="ari"><span class="aamt" id="d-ccbal">$841.10</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="ari"><span class="aamt" id="d-ccbal">$4,860.39</span><svg class="chv" width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1l7 6.5-7 6.5" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       </div>
       </div>
     </div>
@@ -573,7 +579,7 @@ var SITE_PASSWORD = "4351";
 history.pushState(null,'',location.href);
 window.addEventListener('popstate',function(){history.pushState(null,'',location.href);});
 
-var cfg={time:"8:15",battery:100,badge:"10",name:"Shamsuddin",rewards:"BofA Rewards member",chk4:"7401",chkbal:"1041.64",sav4:"9289",savbal:"9.48",cc1:"BANKAMERICARD",cc2:"Platinum Plus",cc4:"9171",ccbal:"841.10",bonus:"500",cbrate:"1.5"};
+var cfg={time:"8:15",battery:100,badge:"10",name:"Shamsuddin",rewards:"BofA Rewards member",chk4:"7401",chkbal:"168.75",sav4:"9289",savbal:"315.53",cc1:"BANKAMERICARD",cc2:"Platinum Plus",cc4:"9171",ccbal:"4860.39",bonus:"500",cbrate:"1.5"};
 
 function fmt(v){var n=parseFloat(String(v).replace(/,/g,''));if(isNaN(n))return v;return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
